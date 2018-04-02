@@ -191,50 +191,43 @@ exports.playCmd = (socket,rl) => {
     let toBeResolved =[];
 
 
-     const playOne = () =>
-    {
-        return new Sequelize.Promise((resolve, reject) => {
+     const playOne = () => {
+         return Sequelize.Promise.resolve()
+             .then(() => {
+                 if (toBeResolved.length <= 0) {
+                     log(socket, 'No hay nada más que preguntar.', 'red');
+                     log(socket, `Fin del juego. Aciertos: ${score}`);
+                     biglog(socket, `${score}`, 'pink');
+                     return;
+                 }
 
 
-            if(toBeResolved.length === 0
-    )
-        {
-            log(socket,'No hay nada más que preguntar.', 'red');
-            log(socket,`Fin del juego. Aciertos: ${score}`);
-            biglog(socket,`${score}`, 'pink');
-            rl.prompt();
-        }
-    else
-        {
-            let id = Math.floor(Math.random() * toBeResolved.length);
-            let quiz = model.getByIndex(toBeResolved[id]);
-            toBeResolved.splice(id, 1);
+                 let id = Math.floor(Math.random() * toBeResolved.length);
+                 let quiz = toBeResolved[id];
+                 toBeResolved.splice(id, 1);
 
-            return makeQuestion(rl, `${quiz.question}?`)
-                .then(a => {
-                if(a.toLowerCase().trim() === quiz.answer.toLowerCase().trim()
-        )
-            {
-                score++;
-                console.log(socket,`CORRECTO - Lleva ${score} aciertos`, 'magenta');
-                resolve(playOne());
-            }
-        else
-            {
-                console.log(socket,`INCORRECTO`, 'magenta');
-                log(socket,`Fin del juego. Aciertos : ${score}`);
-                biglog(socket,`${score}`, 'red');
-                resolve();
-            }
+                 return makeQuestion(rl, `${quiz.question}?`)
+                     .then(a => {
+                         switch (a.toLowerCase().trim()) {
+                             case quiz.answer.toLowerCase().trim():
+                                 score++;
+                                 log(socket, `CORRECTO - Lleva ${score} aciertos`, 'magenta');
+                                 resolve(playOne());
+                                 break;
 
-        })
-            ;
+                             default:
+                                 log(socket, `INCORRECTO`, 'magenta');
+                                 log(socket, `Fin del juego. Aciertos : ${score}`);
+                                 biglog(socket, `${score}`, 'red');
+                                 resolve();
+                                 break;
 
-        }
 
-    })
-        ;
-    };
+                         }
+                     });
+             });
+     };
+
     models.quiz.findAll({raw: true})
         .then(quizzes => {
         toBeResolved = quizzes;
